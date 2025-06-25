@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClCompile Include="graphraylib.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="midicore.cpp" />
     <ClCompile Include="midifile\src\Binasc.cpp" />
     <ClCompile Include="midifile\src\MidiEvent.cpp" />
     <ClCompile Include="midifile\src\MidiEventList.cpp" />

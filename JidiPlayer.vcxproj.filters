@@ -42,6 +42,9 @@
     <ClCompile Include="graphraylib.cpp">
       <Filter>Source Files\src</Filter>
     </ClCompile>
+    <ClCompile Include="midicore.cpp">
+      <Filter>Source Files\src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">

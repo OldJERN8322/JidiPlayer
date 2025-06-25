@@ -6,26 +6,50 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 
+#define NOGDI
+#define NOUSER
+
 #include "raylib.h"
+#include <string>
+#include <atomic>
+#include <thread>
+#include <chrono>
 
-int graphrun()
-{
-    const int screenWidth = 800;
-    const int screenHeight = 450;
+extern std::atomic<double> midiPlayheadSeconds;
+extern std::atomic<bool> playing;
+extern std::atomic<bool> finish;
 
-    InitWindow(screenWidth, screenHeight, "Title");
+void playMidiAsync(const std::string& filename);
+
+int graphrun(const std::string& filename) {
+    const int screenWidth = 1280;
+    const int screenHeight = 720;
+
+    InitWindow(screenWidth, screenHeight, "Jidi Player (WIP)");
     SetTargetFPS(60);
 
-    while (!WindowShouldClose())
-    {
+    std::thread midiThread(playMidiAsync, filename);
+
+    while (!WindowShouldClose() || playing) {
         BeginDrawing();
-        ClearBackground(RAYWHITE);
-		DrawFPS(10, 10);
-        DrawText("Hello! World", 200, 200, 20, DARKGRAY);
+        ClearBackground(BLACK);
+
+        if (playing) {
+            DrawText("Playing MIDI...", 10, 10, 30, GREEN);
+        }
+        else if (finish) {
+            DrawText("MIDI Finished. Window will close shortly...", 10, 10, 30, ORANGE);
+        }
+        else {
+            DrawText("MIDI Loading...", 10, 10, 30, WHITE);
+        }
+
+        DrawFPS(10, 690);
         EndDrawing();
     }
 
+    midiThread.join();
+    std::this_thread::sleep_for(std::chrono::seconds(3));
     CloseWindow();
-
     return 0;
 }
