@@ -10,9 +10,6 @@
 extern int graphrun(); // Function to run the graphics with raylib, defined in graphics.cpp
 
 #include <OmniMIDI.h>
-#undef DrawText
-#undef CloseWindow
-#undef ShowCursor
 
 extern "C" {
     BOOL KDMAPI(InitializeKDMAPIStream)();
