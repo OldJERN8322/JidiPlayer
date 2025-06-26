@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="graphraylib.cpp" />
+    <ClCompile Include="includes\tinyfiledialogs\tinyfiledialogs.c" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="midicore.cpp" />
     <ClCompile Include="midifile\src\Binasc.cpp" />
@@ -142,7 +143,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)midifile\include;$(ProjectDir)includes\raylib\include;$(ProjectDir)includes\kdmapi</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)midifile\include;$(ProjectDir)includes\raylib\include;$(ProjectDir)includes\kdmapi;$(ProjectDir)includes\tinyfiledialogs</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>

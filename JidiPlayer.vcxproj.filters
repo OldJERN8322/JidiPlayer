@@ -48,6 +48,9 @@
     <ClCompile Include="rolling.cpp">
       <Filter>Source Files\src</Filter>
     </ClCompile>
+    <ClCompile Include="includes\tinyfiledialogs\tinyfiledialogs.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">

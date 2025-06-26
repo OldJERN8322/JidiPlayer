@@ -9,6 +9,7 @@
 #include <mutex>
 #include <algorithm>
 #include <deque>
+#include <map>
 #define DEBUG_PLAYBACK 1
 
 using namespace smf;
@@ -47,6 +48,9 @@ struct TimedEvent {
     smf::MidiEvent* ev;
 };
 
+std::map<int, double> tempoMap; // tick -> tempoBPM
+std::atomic<double> currentTempoBPM;
+
 void playMidiAsync(const std::string& filename) {
     if (!StartOmniMIDI()) {
         playing = false;
@@ -65,45 +69,76 @@ void playMidiAsync(const std::string& filename) {
 
     midi.joinTracks();
     midi.doTimeAnalysis();
-
     int tpq = midi.getTicksPerQuarterNote();
-    double tempo = 120.0; // fallback
-    double tickDuration = 0.5 / tpq; // 120 BPM default = 0.5s/quarter = 500ms/quarter
 
+    // Collect tempo changes: tick -> tempo
     for (int i = 0; i < midi[0].getEventCount(); ++i) {
         const auto& e = midi[0][i];
         if (e.isTempo()) {
-            tempo = e.getTempoBPM();
-            tickDuration = 60.0 / (tempo * tpq);
+            tempoMap[e.tick] = e.getTempoBPM();
         }
     }
+    if (tempoMap.empty()) tempoMap[0] = 180.0;
 
+    // Build tick->time map
+    std::map<int, double> tickToTime;
+    double currentTime = 0.0;
+    double currentTempo = tempoMap.begin()->second;
+    int lastTick = 0;
+
+    for (auto it = tempoMap.begin(); it != tempoMap.end(); ++it) {
+        int t = it->first;
+        double bpm = it->second;
+        if (t > lastTick) {
+            double segmentSeconds = ((double)(t - lastTick) * 60.0) / (currentTempo * tpq);
+            currentTime += segmentSeconds;
+            tickToTime[t] = currentTime;
+        }
+        else {
+            tickToTime[t] = currentTime;
+        }
+        lastTick = t;
+        currentTempo = bpm;
+    }
+
+    currentTempoBPM.store(tempoMap.begin()->second);
     playing = true;
     finish = false;
 
     std::deque<TimedEvent> events;
     for (int i = 0; i < midi[0].getEventCount(); ++i) {
         auto* mev = &midi[0][i];
-        if (!mev->isMeta()) {
-            events.push_back({ mev->tick, mev });
-        }
+        if (!mev->isMeta()) events.push_back({ mev->tick, mev });
     }
 
     auto start = std::chrono::high_resolution_clock::now();
-    const int kMaxEventsPerFrame = 200;
 
     while (!events.empty() && playing) {
         auto now = std::chrono::high_resolution_clock::now();
         double elapsed = std::chrono::duration<double>(now - start).count();
-        double currentTick = elapsed / tickDuration;
         midiPlayheadSeconds = elapsed;
 
-#if DEBUG_PLAYBACK
-        if ((int)currentTick % 240 == 0) std::cout << "Tick: " << currentTick << ", Time: " << elapsed << "s\n";
-#endif
         int dispatched = 0;
-        int batch = 0;
-        while (!events.empty() && events.front().tick <= currentTick && dispatched < kMaxEventsPerFrame) {
+        const int kMaxEventsPerFrame = 200;
+        while (!events.empty()) {
+            int evTick = events.front().tick;
+            double evTime = 0.0;
+
+            auto upper = tickToTime.upper_bound(evTick);
+            if (upper == tickToTime.begin()) {
+                evTime = 0.0;
+            }
+            else {
+                auto prev = std::prev(upper);
+                int prevTick = prev->first;
+                double baseTime = prev->second;
+                double bpm = tempoMap[prevTick];
+                currentTempoBPM.store(bpm); // update tempo visual here
+                evTime = baseTime + ((evTick - prevTick) * 60.0) / (bpm * tpq);
+            }
+
+            if (evTime > elapsed || dispatched >= kMaxEventsPerFrame) break;
+
             smf::MidiEvent* mev = events.front().ev;
             events.pop_front();
 
@@ -131,16 +166,7 @@ void playMidiAsync(const std::string& filename) {
             }
         }
 
-#if DEBUG_PLAYBACK
-        if (batch > 0) std::cout << "Dispatched: " << batch << " notes\n";
-#endif
-
-        if (dispatched >= kMaxEventsPerFrame) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(2)); // yield CPU if overrun
-        }
-        else {
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));
-        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 
     playing = false;
