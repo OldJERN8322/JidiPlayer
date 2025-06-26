@@ -28,6 +28,7 @@
     <ClCompile Include="midifile\src\MidiFile.cpp" />
     <ClCompile Include="midifile\src\MidiMessage.cpp" />
     <ClCompile Include="midifile\src\Options.cpp" />
+    <ClCompile Include="rolling.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="graphics.h" />

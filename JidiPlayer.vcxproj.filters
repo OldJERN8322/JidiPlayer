@@ -45,6 +45,9 @@
     <ClCompile Include="midicore.cpp">
       <Filter>Source Files\src</Filter>
     </ClCompile>
+    <ClCompile Include="rolling.cpp">
+      <Filter>Source Files\src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">
