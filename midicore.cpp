@@ -1,4 +1,5 @@
 #include "MidiFile.h"
+#include "rollqueue.h"
 #include <OmniMIDI.h>
 #include <atomic>
 #include <chrono>
@@ -152,7 +153,7 @@ void playMidiAsync(const std::string& filename) {
                 std::lock_guard<std::mutex> lock(noteMutex);
                 activeNotes.push_back(data1);
                 activeTracks.push_back(mev->track);
-                AddRollNote(data1, mev->track);
+                QueueRollNote(data1, mev->track);
             }
             else if ((mev->at(0) & 0xF0) == 0x80 || ((mev->at(0) & 0xF0) == 0x90 && data2 == 0)) {
                 std::lock_guard<std::mutex> lock(noteMutex);

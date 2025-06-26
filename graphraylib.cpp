@@ -9,13 +9,12 @@
 #define NOGDI
 #define NOUSER
 
-// Add frame rate safety fallback for Black MIDI density
-
 #include "raylib.h"
+#include <string>
 #include <atomic>
 #include <thread>
 #include <chrono>
-#include <string>
+#include "rollqueue.h" // Include the roll queue header
 
 extern std::atomic<double> midiPlayheadSeconds;
 extern std::atomic<bool> playing;
@@ -29,15 +28,14 @@ int graphrun(const std::string& filename) {
     const int screenWidth = 1280;
     const int screenHeight = 720;
 
-    InitWindow(screenWidth, screenHeight, "Jidi Player (WIP)");
-    // Remove SetTargetFPS to run uncapped
-    // Add manual frame pacing if needed
-    SetTargetFPS(60);
+    std::string basename = filename.substr(filename.find_last_of("/\\") + 1);
+    InitWindow(screenWidth, screenHeight, TextFormat("Jidi Player (WIP) - %s", basename.c_str()));
+    //SetTargetFPS(0); // uncapped
 
     std::thread midiThread(playMidiAsync, filename);
 
     float scrollOffset = 0.0f;
-    const float scrollSpeed = 1920.0f;
+    const float scrollSpeed = 1920.0f; // MIDI speed
 
     double lastFrameTime = GetTime();
 
@@ -47,6 +45,9 @@ int graphrun(const std::string& filename) {
         lastFrameTime = now;
 
         if (playing) scrollOffset += scrollSpeed * frameTime;
+
+        // Process queued MIDI visual events BEFORE rendering
+        ProcessRollQueue();
 
         BeginDrawing();
         ClearBackground(BLACK);
@@ -65,9 +66,6 @@ int graphrun(const std::string& filename) {
 
         DrawFPS(10, 690);
         EndDrawing();
-
-        // Optional CPU throttle if overloaded
-        if (frameTime < 1.0 / 300.0) std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 
     midiThread.join();

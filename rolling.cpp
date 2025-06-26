@@ -1,5 +1,6 @@
 #include "raylib.h"
-#include <vector>
+#include "rollqueue.h"
+#include <deque>
 #include <mutex>
 #include <algorithm>
 #include <atomic>
@@ -17,18 +18,14 @@ struct NoteRoll {
 };
 
 std::mutex rollMutex;
-std::vector<NoteRoll> rollingNotes;
+std::deque<NoteRoll> rollingNotes;
 
 void AddRollNote(int pitch, int track) {
     std::lock_guard<std::mutex> lock(rollMutex);
-
-    // Don't add if there's already a note of same pitch near entry zone
-    for (const auto& note : rollingNotes) {
-        if (note.pitch == pitch && note.x > 1250.0f) return;
+    rollingNotes.emplace_back(NoteRoll{ 1280.0f, pitch, track, 100.0f });
+    if (rollingNotes.size() > 4000) {
+        rollingNotes.erase(rollingNotes.begin(), rollingNotes.begin() + 1000);
     }
-
-    if (rollingNotes.size() < 3000)
-        rollingNotes.emplace_back(NoteRoll{ 1280.0f, pitch, track, 100.0f });
 }
 
 void DrawRollingNotes(float scrollSpeed, int screenHeight) {
@@ -39,13 +36,13 @@ void DrawRollingNotes(float scrollSpeed, int screenHeight) {
     double delta = now - lastTime;
     lastTime = now;
 
-    if (delta > 0.5) delta = 0.016; // freeze protection
+    if (delta > 0.5) delta = 0.016;
 
     std::lock_guard<std::mutex> lock(rollMutex);
     std::lock_guard<std::mutex> activeLock(noteMutex);
 
     float moveStep = scrollSpeed * static_cast<float>(delta);
-    const size_t maxDraw = 1000;
+    const size_t maxDraw = 8192;
     size_t drawn = 0;
 
     auto pitchToY = [&](int pitch) {
@@ -95,18 +92,10 @@ void DrawRollingNotes(float scrollSpeed, int screenHeight) {
         DrawRectangle(640, static_cast<int>(y), 10, 8, color);
     }
 
-    // Prune offscreen
-    if (rollingNotes.size() > 4000) {
-        rollingNotes.erase(
-            rollingNotes.begin(),
-            rollingNotes.begin() + (rollingNotes.size() - 3000)
-        );
+    while (!rollingNotes.empty() && rollingNotes.front().x + rollingNotes.front().width < 0) {
+        rollingNotes.pop_front();
     }
 
-    rollingNotes.erase(
-        std::remove_if(rollingNotes.begin(), rollingNotes.end(), [](const NoteRoll& n) {
-            return n.x + n.width < 0;
-            }),
-        rollingNotes.end()
-    );
+    // Add roll count text overlay
+    DrawText(TextFormat("RollCount: %d", (int)rollingNotes.size()), 10, 80, 20, WHITE);
 }
