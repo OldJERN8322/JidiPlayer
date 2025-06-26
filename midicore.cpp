@@ -79,7 +79,7 @@ void playMidiAsync(const std::string& filename) {
             tempoMap[e.tick] = e.getTempoBPM();
         }
     }
-    if (tempoMap.empty()) tempoMap[0] = 180.0;
+    if (tempoMap.empty()) tempoMap[0] = 120.0;
 
     // Build tick->time map
     std::map<int, double> tickToTime;

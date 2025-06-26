@@ -41,7 +41,7 @@ int graphrun(const std::string& filename) {
 
     while (!WindowShouldClose() || playing) {
         double now = GetTime();
-        float frameTime = static_cast<float>(now - lastFrameTime);
+        float frameTime = static_cast<float>(now - lastFrameTime);  
         lastFrameTime = now;
 
         if (playing) scrollOffset += scrollSpeed * frameTime;
@@ -58,6 +58,7 @@ int graphrun(const std::string& filename) {
             DrawText(TextFormat("BPM: %.1f", currentTempoBPM.load()), 10, 50, 20, WHITE);
         }
         else if (finish) {
+            DrawRollingNotes(scrollSpeed, screenHeight);
             DrawText("MIDI Finished. Window will close shortly...", 10, 10, 30, ORANGE);
         }
         else {

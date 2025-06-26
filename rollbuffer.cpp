@@ -9,6 +9,10 @@
 std::mutex rollQueueMutex;
 std::queue<std::pair<int, int>> pendingRollQueue; // (pitch, track)
 
+void AddRollNote(int pitch, int track) {
+    AddRollNote(pitch, track, 0.05f);  // default fallback
+}
+
 void QueueRollNote(int pitch, int track) {
     std::lock_guard<std::mutex> lock(rollQueueMutex);
     if (pendingRollQueue.size() < 10000)

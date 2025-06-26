@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <set>
 
 extern std::vector<int> activeNotes;
 extern std::vector<int> activeTracks;
@@ -15,87 +16,101 @@ struct NoteRoll {
     int pitch;
     int track;
     float width;
+    float lifetime;
 };
 
 std::mutex rollMutex;
 std::deque<NoteRoll> rollingNotes;
+std::set<int> heldKeys;
 
-void AddRollNote(int pitch, int track) {
+void AddRollNote(int pitch, int track, float duration = 0.2f) {
     std::lock_guard<std::mutex> lock(rollMutex);
-    rollingNotes.emplace_back(NoteRoll{ 1280.0f, pitch, track, 100.0f });
-    if (rollingNotes.size() > 4000) {
+    rollingNotes.emplace_back(NoteRoll{ 1280.0f, pitch, track, 120.0f, duration });
+    if (rollingNotes.size() > 32768) {
         rollingNotes.erase(rollingNotes.begin(), rollingNotes.begin() + 1000);
+    }
+}
+
+void PollInputKeys() {
+    std::lock_guard<std::mutex> lock(noteMutex);
+    for (int i = 0; i < 128; ++i) {
+        if (IsKeyDown(i)) {
+            if (!heldKeys.count(i)) {
+                activeNotes.push_back(i);
+                activeTracks.push_back(0);
+                AddRollNote(i, 0, 0.5f);
+                heldKeys.insert(i);
+            }
+        }
+        else {
+            heldKeys.erase(i);
+        }
     }
 }
 
 void DrawRollingNotes(float scrollSpeed, int screenHeight) {
     const int screenCenterX = 640;
-
     static double lastTime = GetTime();
     double now = GetTime();
     double delta = now - lastTime;
     lastTime = now;
-
     if (delta > 0.5) delta = 0.016;
 
     std::lock_guard<std::mutex> lock(rollMutex);
     std::lock_guard<std::mutex> activeLock(noteMutex);
 
     float moveStep = scrollSpeed * static_cast<float>(delta);
-    const size_t maxDraw = 8192;
-    size_t drawn = 0;
 
     auto pitchToY = [&](int pitch) {
         return 20 + (127 - pitch) * (screenHeight - 40) / 128.0f;
         };
 
-    for (auto& note : rollingNotes) {
-        note.x -= moveStep;
-    }
+    for (auto& note : rollingNotes) note.x -= moveStep;
 
+    int rendered = 0;
     for (const auto& note : rollingNotes) {
         if (note.x + note.width < 0 || note.x > 1280) continue;
-        if (++drawn > maxDraw) break;
 
         float y = pitchToY(note.pitch);
 
-        Color color;
+        Color base;
         switch (note.track % 6) {
-        case 0: color = RED; break;
-        case 1: color = GREEN; break;
-        case 2: color = BLUE; break;
-        case 3: color = ORANGE; break;
-        case 4: color = PURPLE; break;
-        case 5: color = YELLOW; break;
-        default: color = GRAY; break;
+        case 0: base = GREEN; break;
+        case 1: base = BLUE; break;
+        case 2: base = ORANGE; break;
+        case 3: base = PURPLE; break;
+        case 4: base = YELLOW; break;
+        case 5: base = SKYBLUE; break;
+        default: base = GRAY; break;
         }
 
-        DrawRectangle(static_cast<int>(note.x - screenCenterX + 640), static_cast<int>(y), static_cast<int>(note.width), 8, Fade(color, 0.6f));
+        Color color = Fade(base, 0.8f);
+        float drawWidth = scrollSpeed * note.lifetime;
+        Vector2 pos = { note.x - screenCenterX + 640.0f, y };
+        Vector2 size = { drawWidth, 8.0f };
+        DrawRectangleV(pos, size, color);
+
+        if (++rendered > 16384) break;
     }
 
     for (size_t i = 0; i < activeNotes.size(); ++i) {
         int pitch = activeNotes[i];
         int track = (i < activeTracks.size()) ? activeTracks[i] : 0;
         float y = pitchToY(pitch);
+        Vector2 pos = { 1272.0f, y };
+        Vector2 size = { 10.0f, 8.0f };
+        DrawRectangleV(pos, size, WHITE);
+    }
 
-        Color color;
-        switch (track % 6) {
-        case 0: color = RED; break;
-        case 1: color = GREEN; break;
-        case 2: color = BLUE; break;
-        case 3: color = ORANGE; break;
-        case 4: color = PURPLE; break;
-        case 5: color = YELLOW; break;
-        default: color = WHITE; break;
+    while (!rollingNotes.empty()) {
+        const auto& n = rollingNotes.front();
+        if ((n.x + scrollSpeed * n.lifetime) < -50.0f) {
+            rollingNotes.pop_front();
         }
-
-        DrawRectangle(640, static_cast<int>(y), 10, 8, color);
+        else {
+            break;
+        }
     }
 
-    while (!rollingNotes.empty() && rollingNotes.front().x + rollingNotes.front().width < 0) {
-        rollingNotes.pop_front();
-    }
-
-    // Add roll count text overlay
     DrawText(TextFormat("RollCount: %d", (int)rollingNotes.size()), 10, 80, 20, WHITE);
 }
