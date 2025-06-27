@@ -76,13 +76,15 @@ void DrawRollingNotes(float scrollSpeed, int screenHeight) {
         float y = pitchToY(note.pitch);
 
         Color base;
-        switch (note.track % 6) {
-        case 0: base = GREEN; break;
-        case 1: base = BLUE; break;
-        case 2: base = ORANGE; break;
-        case 3: base = PURPLE; break;
-        case 4: base = YELLOW; break;
-        case 5: base = SKYBLUE; break;
+        switch (note.track % 8) {
+        case 0: base = RED; break;
+        case 1: base = ORANGE; break;
+        case 2: base = YELLOW; break;
+        case 3: base = LIME; break;
+        case 4: base = SKYBLUE; break;
+        case 5: base = PURPLE; break;
+        case 6: base = PINK; break;
+        case 7: base = BROWN; break;
         default: base = GRAY; break;
         }
 
