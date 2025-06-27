@@ -39,7 +39,7 @@ int graphrun(const std::string& filename) {
     std::thread midiThread(playMidiAsync, filename);
 
     float scrollOffset = 0.0f;
-    const float scrollSpeed = 1920.0f; // MIDI speed
+    const float scrollSpeed = 1920.0f;
 
     double lastFrameTime = GetTime();
 
@@ -61,14 +61,14 @@ int graphrun(const std::string& filename) {
         ClearBackground(BLACK);
         DrawRollingNotes(scrollSpeed, screenHeight);
 
-        if (midiPaused) {
+        if (finish) {
+            DrawText("MIDI Finished. You can close window.", 10, 10, 30, YELLOW);
+        }
+        else if (midiPaused) {
             DrawText("MIDI Paused - Press spacebar to continue.", 10, 10, 30, YELLOW);
         }
         else if (playing) {
             DrawText("Playing MIDI...", 10, 10, 30, GREEN);
-        }
-        else if (finish) {
-            DrawText("MIDI Finished. You can close window.", 10, 10, 30, YELLOW);
         }
         else {
             DrawText("MIDI Loading...", 10, 10, 30, WHITE);

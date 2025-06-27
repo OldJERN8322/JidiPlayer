@@ -1,5 +1,6 @@
 #include "raylib.h"
-#include "rollqueue.h" //forget this line here
+#include "rollqueue.h"
+#include "midipause.h"
 #include <deque>
 #include <mutex>
 #include <algorithm>
@@ -62,7 +63,7 @@ void DrawRollingNotes(float scrollSpeed, int screenHeight) {
     std::lock_guard<std::mutex> lock(rollMutex);
     std::lock_guard<std::mutex> activeLock(noteMutex);
 
-    float moveStep = scrollSpeed * static_cast<float>(delta);
+    float moveStep = midiPaused ? 0.0f : scrollSpeed * static_cast<float>(delta);
 
     auto pitchToY = [&](int pitch) {
         return (127 - pitch) * (screenHeight) / 128.0f;
