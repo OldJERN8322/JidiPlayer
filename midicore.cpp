@@ -151,10 +151,13 @@ void playMidiAsync(const std::string& filename) {
             ++dispatched;
 
             if ((mev->at(0) & 0xF0) == 0x90 && data2 > 0) {
-                noteCounter++;
+                IncrementNoteCounterOnce(data1); // Count only once per key
+
                 std::lock_guard<std::mutex> lock(noteMutex);
-                activeNotes.push_back(data1);
-                activeTracks.push_back(mev->track);
+                if (std::find(activeNotes.begin(), activeNotes.end(), data1) == activeNotes.end()) {
+                    activeNotes.push_back(data1);
+                    activeTracks.push_back(mev->track);
+                }
                 QueueRollNote(data1, mev->track);
             }
             else if ((mev->at(0) & 0xF0) == 0x80 || ((mev->at(0) & 0xF0) == 0x90 && data2 == 0)) {
@@ -166,6 +169,8 @@ void playMidiAsync(const std::string& filename) {
                         break;
                     }
                 }
+                std::lock_guard<std::mutex> setLock(noteCounterMutex);
+                activeNoteSet.erase(data1);
             }
         }
     }

@@ -32,7 +32,7 @@ int graphrun(const std::string& filename) {
 
     std::string basename = filename.substr(filename.find_last_of("/\\") + 1);
     InitWindow(screenWidth, screenHeight, TextFormat("Jidi Player (WIP) - %s", basename.c_str()));
-    SetTargetFPS(60);
+    SetTargetFPS(60); //Capped
 
     std::thread midiThread(playMidiAsync, filename);
 
@@ -69,7 +69,7 @@ int graphrun(const std::string& filename) {
         DrawText(TextFormat("Note counter: %d", noteCounter.load()), 10, 50, 20, WHITE);
         DrawText(TextFormat("Time: %.2f s", midiPlayheadSeconds.load()), 10, 70, 20, WHITE);
         DrawText(TextFormat("BPM: %.1f", currentTempoBPM.load()), 10, 90, 20, WHITE);
-        DrawText("This crashpoint take slower midi...", 10, 630, 20, RED);
+        DrawText("There almost not lag in crashpoint.", 10, 630, 20, ORANGE);
         DrawFPS(10, 690);
         EndDrawing();
     }
