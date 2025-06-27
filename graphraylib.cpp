@@ -30,7 +30,7 @@ int graphrun(const std::string& filename) {
 
     std::string basename = filename.substr(filename.find_last_of("/\\") + 1);
     InitWindow(screenWidth, screenHeight, TextFormat("Jidi Player (WIP) - %s", basename.c_str()));
-    //SetTargetFPS(0); // uncapped
+    SetTargetFPS(60);
 
     std::thread midiThread(playMidiAsync, filename);
 
@@ -60,7 +60,7 @@ int graphrun(const std::string& filename) {
         }
         else if (finish) {
             DrawRollingNotes(scrollSpeed, screenHeight);
-            DrawText("MIDI Finished. You can close window.", 10, 10, 30, ORANGE);
+            DrawText("MIDI Finished. You can close window.", 10, 10, 30, YELLOW);
         }
         else {
             DrawText("MIDI Loading...", 10, 10, 30, WHITE);
@@ -72,7 +72,6 @@ int graphrun(const std::string& filename) {
     }
 
     midiThread.join();
-    std::this_thread::sleep_for(std::chrono::seconds(3));
     CloseWindow();
     return 0;
 }

@@ -15,7 +15,7 @@ void AddRollNote(int pitch, int track) {
 
 void QueueRollNote(int pitch, int track) {
     std::lock_guard<std::mutex> lock(rollQueueMutex);
-    if (pendingRollQueue.size() < 10000)
+    if (pendingRollQueue.size() < 16777216)
         pendingRollQueue.emplace(pitch, track);
 }
 

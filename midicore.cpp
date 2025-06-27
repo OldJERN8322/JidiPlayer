@@ -120,7 +120,7 @@ void playMidiAsync(const std::string& filename) {
         midiPlayheadSeconds = elapsed;
 
         int dispatched = 0;
-        const int kMaxEventsPerFrame = 200;
+        const int kMaxEventsPerFrame = 16384;
         while (!events.empty()) {
             int evTick = events.front().tick;
             double evTime = 0.0;
@@ -166,11 +166,10 @@ void playMidiAsync(const std::string& filename) {
                 }
             }
         }
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 
     playing = false;
     finish = true;
+    std::this_thread::sleep_for(std::chrono::seconds(5));
     StopOmniMIDI();
 }

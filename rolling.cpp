@@ -1,5 +1,5 @@
 #include "raylib.h"
-#include "rollqueue.h"
+#include "rollqueue.h" //forget this line here
 #include <deque>
 #include <mutex>
 #include <algorithm>
@@ -25,6 +25,9 @@ std::set<int> heldKeys;
 
 void AddRollNote(int pitch, int track, float duration = 0.2f) {
     std::lock_guard<std::mutex> lock(rollMutex);
+    for (const auto& note : rollingNotes) {
+        if (note.pitch == pitch && note.x > 1200.0f) return; // avoid overlaps
+    }
     rollingNotes.emplace_back(NoteRoll{ 1280.0f, pitch, track, 120.0f, duration });
     if (rollingNotes.size() > 32768) {
         rollingNotes.erase(rollingNotes.begin(), rollingNotes.begin() + 1000);
@@ -62,12 +65,11 @@ void DrawRollingNotes(float scrollSpeed, int screenHeight) {
     float moveStep = scrollSpeed * static_cast<float>(delta);
 
     auto pitchToY = [&](int pitch) {
-        return 20 + (127 - pitch) * (screenHeight - 40) / 128.0f;
+        return (127 - pitch) * (screenHeight) / 128.0f;
         };
 
     for (auto& note : rollingNotes) note.x -= moveStep;
 
-    int rendered = 0;
     for (const auto& note : rollingNotes) {
         if (note.x + note.width < 0 || note.x > 1280) continue;
 
@@ -84,13 +86,11 @@ void DrawRollingNotes(float scrollSpeed, int screenHeight) {
         default: base = GRAY; break;
         }
 
-        Color color = Fade(base, 0.8f);
+        Color color = Fade(base, 1.0f);
         float drawWidth = scrollSpeed * note.lifetime;
         Vector2 pos = { note.x - screenCenterX + 640.0f, y };
-        Vector2 size = { drawWidth, 8.0f };
+        Vector2 size = { drawWidth, 5.6f };
         DrawRectangleV(pos, size, color);
-
-        if (++rendered > 16384) break;
     }
 
     for (size_t i = 0; i < activeNotes.size(); ++i) {
@@ -98,7 +98,7 @@ void DrawRollingNotes(float scrollSpeed, int screenHeight) {
         int track = (i < activeTracks.size()) ? activeTracks[i] : 0;
         float y = pitchToY(pitch);
         Vector2 pos = { 1272.0f, y };
-        Vector2 size = { 10.0f, 8.0f };
+        Vector2 size = { 10.0f, 5.6f };
         DrawRectangleV(pos, size, WHITE);
     }
 
@@ -112,5 +112,5 @@ void DrawRollingNotes(float scrollSpeed, int screenHeight) {
         }
     }
 
-    DrawText(TextFormat("RollCount: %d", (int)rollingNotes.size()), 10, 650, 20, WHITE);
+    DrawText(TextFormat("Rendered notes: %d", (int)rollingNotes.size()), 10, 650, 20, WHITE);
 }
