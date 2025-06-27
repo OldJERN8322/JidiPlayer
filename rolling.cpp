@@ -89,7 +89,8 @@ void DrawRollingNotes(float scrollSpeed, int screenHeight) {
         default: base = GRAY; break;
         }
 
-        Color color = Fade(base, 1.0f);
+        float alpha = midiPaused ? 0.5f : 1.0f;
+        Color color = Fade(base, alpha);
         float drawWidth = scrollSpeed * note.lifetime;
         Vector2 pos = { note.x - screenCenterX + 640.0f, y };
         Vector2 size = { drawWidth, 5.6f };
@@ -115,6 +116,6 @@ void DrawRollingNotes(float scrollSpeed, int screenHeight) {
         }
     }
 
-    DrawText(TextFormat("RN (Rolls): %d", (int)rollingNotes.size()), 10, 670, 20, WHITE);
-    DrawText(TextFormat("RN (Active): %d", (int)activeNotes.size()), 10, 650, 20, WHITE);
+    DrawText(TextFormat("RN (Rolls): %d", (int)rollingNotes.size()), 10, 650, 20, WHITE);
+    DrawText(TextFormat("RN (Active): %d", (int)activeNotes.size()), 10, 630, 20, WHITE);
 }
