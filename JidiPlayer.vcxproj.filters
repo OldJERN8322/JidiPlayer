@@ -65,11 +65,11 @@
     <ClInclude Include="graphics.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="rollqueue.h">
-      <Filter>Source Files\src</Filter>
-    </ClInclude>
     <ClInclude Include="notecounter.h">
-      <Filter>Source Files\src</Filter>
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rollqueue.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
