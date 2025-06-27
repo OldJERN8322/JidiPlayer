@@ -16,9 +16,11 @@
 #include <chrono>
 #include "rollqueue.h"
 #include "notecounter.h"
+#include "midipause.h"
 
 extern std::atomic<double> midiPlayheadSeconds;
 extern std::atomic<bool> playing;
+extern std::atomic<bool> midiPaused;
 extern std::atomic<bool> finish;
 extern std::atomic<double> currentTempoBPM;
 extern std::vector<int> activeNotes;
@@ -51,15 +53,21 @@ int graphrun(const std::string& filename) {
         // Process queued MIDI visual events BEFORE rendering
         ProcessRollQueue();
 
+        if (IsKeyPressed(KEY_SPACE)) {
+            HandleMidiPauseInput(true);
+        }
+
         BeginDrawing();
         ClearBackground(BLACK);
+        DrawRollingNotes(scrollSpeed, screenHeight);
 
-        if (playing) {
-            DrawRollingNotes(scrollSpeed, screenHeight);
+        if (midiPaused) {
+            DrawText("MIDI Paused - Press spacebar to continue.", 10, 10, 30, YELLOW);
+        }
+        else if (playing) {
             DrawText("Playing MIDI...", 10, 10, 30, GREEN);
         }
         else if (finish) {
-            DrawRollingNotes(scrollSpeed, screenHeight);
             DrawText("MIDI Finished. You can close window.", 10, 10, 30, YELLOW);
         }
         else {

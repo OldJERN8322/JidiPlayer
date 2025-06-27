@@ -1,6 +1,7 @@
 #include "MidiFile.h"
 #include "rollqueue.h"
 #include "notecounter.h"
+#include "midipause.h"
 #include <OmniMIDI.h>
 #include <atomic>
 #include <chrono>
@@ -17,6 +18,7 @@
 using namespace smf;
 
 std::atomic<double> midiPlayheadSeconds{ 0 };
+std::atomic<bool> midiPaused = false;
 std::atomic<bool> playing{ false };
 std::atomic<bool> finish{ false };
 
@@ -43,6 +45,12 @@ void StopOmniMIDI() {
 void SendMIDIMessage(DWORD status, DWORD data1, DWORD data2) {
     DWORD message = status | (data1 << 8) | (data2 << 16);
     SendDirectData(message);
+}
+
+void HandleMidiPauseInput(bool spacePressed) {
+    if (spacePressed) {
+        midiPaused = !midiPaused;
+    }
 }
 
 struct TimedEvent {
@@ -105,6 +113,7 @@ void playMidiAsync(const std::string& filename) {
 
     currentTempoBPM.store(tempoMap.begin()->second);
     playing = true;
+    midiPaused = true;
     finish = false;
 
     std::deque<TimedEvent> events;
@@ -117,6 +126,17 @@ void playMidiAsync(const std::string& filename) {
 
     while (!events.empty() && playing) {
         auto now = std::chrono::high_resolution_clock::now();
+
+        if (midiPaused) {
+            auto pauseStart = now;
+            while (midiPaused && playing) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            }
+            auto pauseEnd = std::chrono::high_resolution_clock::now();
+            start += (pauseEnd - pauseStart); // adjust start time to pause duration
+            continue;
+        }
+
         double elapsed = std::chrono::duration<double>(now - start).count();
         midiPlayheadSeconds = elapsed;
 
