@@ -112,5 +112,6 @@ void DrawRollingNotes(float scrollSpeed, int screenHeight) {
         }
     }
 
-    DrawText(TextFormat("Rendered notes: %d", (int)rollingNotes.size()), 10, 650, 20, WHITE);
+    DrawText(TextFormat("RN (Rolls): %d", (int)rollingNotes.size()), 10, 670, 20, WHITE);
+    DrawText(TextFormat("RN (Active): %d", (int)activeNotes.size()), 10, 650, 20, WHITE);
 }

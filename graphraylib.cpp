@@ -14,12 +14,14 @@
 #include <atomic>
 #include <thread>
 #include <chrono>
-#include "rollqueue.h" // Include the roll queue header
+#include "rollqueue.h"
+#include "notecounter.h"
 
 extern std::atomic<double> midiPlayheadSeconds;
 extern std::atomic<bool> playing;
 extern std::atomic<bool> finish;
 extern std::atomic<double> currentTempoBPM;
+extern std::vector<int> activeNotes;
 
 void playMidiAsync(const std::string& filename);
 void DrawRollingNotes(float scrollSpeed, int screenHeight);
@@ -55,8 +57,9 @@ int graphrun(const std::string& filename) {
         if (playing) {
             DrawRollingNotes(scrollSpeed, screenHeight);
             DrawText("Playing MIDI...", 10, 10, 30, GREEN);
-            DrawText(TextFormat("BPM: %.1f", currentTempoBPM.load()), 10, 50, 20, WHITE);
+            DrawText(TextFormat("Note counter: %d", noteCounter.load()), 10, 50, 20, WHITE);
             DrawText(TextFormat("Time: %.2f s", midiPlayheadSeconds.load()), 10, 70, 20, WHITE);
+            DrawText(TextFormat("BPM: %.1f", currentTempoBPM.load()), 10, 90, 20, WHITE);
         }
         else if (finish) {
             DrawRollingNotes(scrollSpeed, screenHeight);
@@ -66,7 +69,7 @@ int graphrun(const std::string& filename) {
             DrawText("MIDI Loading...", 10, 10, 30, WHITE);
         }
 
-        DrawText("This crashpoint take slower midi...", 10, 670, 20, RED);
+        DrawText("This crashpoint take slower midi...", 10, 630, 20, RED);
         DrawFPS(10, 690);
         EndDrawing();
     }

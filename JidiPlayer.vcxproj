@@ -29,11 +29,13 @@
     <ClCompile Include="midifile\src\MidiFile.cpp" />
     <ClCompile Include="midifile\src\MidiMessage.cpp" />
     <ClCompile Include="midifile\src\Options.cpp" />
+    <ClCompile Include="notecounter.cpp" />
     <ClCompile Include="rollbuffer.cpp" />
     <ClCompile Include="rolling.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="graphics.h" />
+    <ClInclude Include="notecounter.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="rollqueue.h" />
   </ItemGroup>
