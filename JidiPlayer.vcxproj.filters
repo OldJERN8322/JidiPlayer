@@ -54,7 +54,10 @@
     <ClCompile Include="rollbuffer.cpp">
       <Filter>Source Files\src</Filter>
     </ClCompile>
-    <ClCompile Include="notecounter_impl.cpp">
+    <ClCompile Include="notecounter.cpp">
+      <Filter>Source Files\src</Filter>
+    </ClCompile>
+    <ClCompile Include="rollqueue.cpp">
       <Filter>Source Files\src</Filter>
     </ClCompile>
   </ItemGroup>
@@ -72,6 +75,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="midipause.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rollthread.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rolling.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

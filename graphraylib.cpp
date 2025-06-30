@@ -34,7 +34,7 @@ int graphrun(const std::string& filename) {
 
     std::string basename = filename.substr(filename.find_last_of("/\\") + 1);
     InitWindow(screenWidth, screenHeight, TextFormat("Jidi Player - %s", basename.c_str()));
-    SetTargetFPS(60); //Capped
+    //SetTargetFPS(60); //Capped
 
     std::thread midiThread(playMidiAsync, filename);
 
@@ -42,15 +42,13 @@ int graphrun(const std::string& filename) {
     const float scrollSpeed = 1920.0f;
 
     double lastFrameTime = GetTime();
-
+    
     while (!WindowShouldClose() || playing) {
         double now = GetTime();
         float frameTime = static_cast<float>(now - lastFrameTime);  
         lastFrameTime = now;
 
         if (playing) scrollOffset += scrollSpeed * frameTime;
-
-        // Process queued MIDI visual events BEFORE rendering
         ProcessRollQueue();
 
         if (IsKeyPressed(KEY_SPACE)) {
@@ -78,7 +76,7 @@ int graphrun(const std::string& filename) {
         DrawText(TextFormat("Note counter: %d", noteCounter.load()), 10, 50, 20, WHITE);
         DrawText(TextFormat("Time: %.2f s", midiPlayheadSeconds.load()), 10, 70, 20, WHITE);
         DrawText(TextFormat("BPM: %.1f", currentTempoBPM.load()), 10, 90, 20, WHITE);
-        DrawText("Release version v1.0.0", 10, 670, 20, WHITE);
+        DrawText("Pre-Release v1.0.1 (Build: 26) - Uncapped", 10, 670, 20, YELLOW);
         DrawFPS(10, 690);
         EndDrawing();
     }

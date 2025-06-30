@@ -2,6 +2,7 @@
 #include "rollqueue.h"
 #include "notecounter.h"
 #include "midipause.h"
+#include "rollthread.h"
 #include <OmniMIDI.h>
 #include <atomic>
 #include <chrono>
@@ -58,7 +59,7 @@ struct TimedEvent {
     smf::MidiEvent* ev;
 };
 
-std::map<int, double> tempoMap; // tick -> tempoBPM
+std::map<int, double> tempoMap;
 std::atomic<double> currentTempoBPM;
 
 void playMidiAsync(const std::string& filename) {
@@ -81,7 +82,6 @@ void playMidiAsync(const std::string& filename) {
     midi.doTimeAnalysis();
     int tpq = midi.getTicksPerQuarterNote();
 
-    // Collect tempo changes: tick -> tempo
     for (int i = 0; i < midi[0].getEventCount(); ++i) {
         const auto& e = midi[0][i];
         if (e.isTempo()) {
@@ -90,7 +90,6 @@ void playMidiAsync(const std::string& filename) {
     }
     if (tempoMap.empty()) tempoMap[0] = 120.0;
 
-    // Build tick->time map
     std::map<int, double> tickToTime;
     double currentTime = 0.0;
     double currentTempo = tempoMap.begin()->second;
@@ -123,6 +122,7 @@ void playMidiAsync(const std::string& filename) {
     }
 
     auto start = std::chrono::high_resolution_clock::now();
+    StartRollThread();
 
     while (!events.empty() && playing) {
         auto now = std::chrono::high_resolution_clock::now();
@@ -133,7 +133,7 @@ void playMidiAsync(const std::string& filename) {
                 std::this_thread::sleep_for(std::chrono::milliseconds(10));
             }
             auto pauseEnd = std::chrono::high_resolution_clock::now();
-            start += (pauseEnd - pauseStart); // adjust start time to pause duration
+            start += (pauseEnd - pauseStart);
             continue;
         }
 
@@ -143,9 +143,11 @@ void playMidiAsync(const std::string& filename) {
         int dispatched = 0;
         const int kMaxEventsPerFrame = 16384;
         while (!events.empty()) {
-            int evTick = events.front().tick;
-            double evTime = 0.0;
+            TimedEvent evt = events.front();
+            smf::MidiEvent* mev = evt.ev;
+            int evTick = evt.tick;
 
+            double evTime = 0.0;
             auto upper = tickToTime.upper_bound(evTick);
             if (upper == tickToTime.begin()) {
                 evTime = 0.0;
@@ -155,48 +157,56 @@ void playMidiAsync(const std::string& filename) {
                 int prevTick = prev->first;
                 double baseTime = prev->second;
                 double bpm = tempoMap[prevTick];
-                currentTempoBPM.store(bpm); // update tempo visual here
+                currentTempoBPM.store(bpm);
                 evTime = baseTime + ((evTick - prevTick) * 60.0) / (bpm * tpq);
             }
 
-            if (evTime > elapsed || dispatched >= kMaxEventsPerFrame) break;
-
-            smf::MidiEvent* mev = events.front().ev;
-            events.pop_front();
+            if (dispatched >= kMaxEventsPerFrame) break;
 
             DWORD status = (mev->at(0) & 0xF0) | (mev->getChannel() & 0x0F);
             DWORD data1 = (*mev)[1];
             DWORD data2 = (*mev)[2];
-            SendMIDIMessage(status, data1, data2);
-            ++dispatched;
 
             if ((mev->at(0) & 0xF0) == 0x90 && data2 > 0) {
-                IncrementNoteCounterOnce(data1); // Count only once per key
+                QueuePrebufferedNote(evTime, data1, mev->track);
+                if (evTime <= elapsed) {
+                    SendMIDIMessage(status, data1, data2);
+                    IncrementNoteCounterOnce(data1);
 
-                std::lock_guard<std::mutex> lock(noteMutex);
-                if (std::find(activeNotes.begin(), activeNotes.end(), data1) == activeNotes.end()) {
-                    activeNotes.push_back(data1);
-                    activeTracks.push_back(mev->track);
-                }
-                QueueRollNote(data1, mev->track);
-            }
-            else if ((mev->at(0) & 0xF0) == 0x80 || ((mev->at(0) & 0xF0) == 0x90 && data2 == 0)) {
-                std::lock_guard<std::mutex> lock(noteMutex);
-                for (size_t j = 0; j < activeNotes.size(); ++j) {
-                    if (activeNotes[j] == data1) {
-                        activeNotes.erase(activeNotes.begin() + j);
-                        activeTracks.erase(activeTracks.begin() + j);
-                        break;
+                    std::lock_guard<std::mutex> lock(noteMutex);
+                    if (std::find(activeNotes.begin(), activeNotes.end(), data1) == activeNotes.end()) {
+                        activeNotes.push_back(data1);
+                        activeTracks.push_back(mev->track);
                     }
                 }
-                std::lock_guard<std::mutex> setLock(noteCounterMutex);
-                activeNoteSet.erase(data1);
+                else break;
             }
+            else if ((mev->at(0) & 0xF0) == 0x80 || ((mev->at(0) & 0xF0) == 0x90 && data2 == 0)) {
+                if (evTime <= elapsed) {
+                    SendMIDIMessage(status, data1, data2);
+
+                    std::lock_guard<std::mutex> lock(noteMutex);
+                    for (size_t j = 0; j < activeNotes.size(); ++j) {
+                        if (activeNotes[j] == data1) {
+                            activeNotes.erase(activeNotes.begin() + j);
+                            activeTracks.erase(activeTracks.begin() + j);
+                            break;
+                        }
+                    }
+                    std::lock_guard<std::mutex> setLock(noteCounterMutex);
+                    activeNoteSet.erase(data1);
+                }
+                else break;
+            }
+
+            events.pop_front();
+            ++dispatched;
         }
     }
 
     playing = false;
     finish = true;
+    StopRollThread();
     std::this_thread::sleep_for(std::chrono::seconds(5));
     StopOmniMIDI();
 }

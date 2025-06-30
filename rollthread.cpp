@@ -1,8 +1,10 @@
+#include "rollthread.h"
 #include "rollqueue.h"
-#include "rolling.h"
-#include <chrono>
+#include <queue>
+#include <mutex>
 #include <thread>
 #include <atomic>
+#include <chrono>
 
 extern std::atomic<double> midiPlayheadSeconds;
 extern std::atomic<bool> playing;
@@ -36,7 +38,7 @@ void StartRollThread() {
             }
 
             double currentTime = midiPlayheadSeconds.load();
-            double earlyWindow = 2.0;
+            double earlyWindow = 0.3;
 
             {
                 std::lock_guard<std::mutex> lock(prebufferMutex);
@@ -52,7 +54,7 @@ void StartRollThread() {
                 }
             }
 
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            std::this_thread::sleep_for(std::chrono::milliseconds(2));
         }
         }).detach();
 }
