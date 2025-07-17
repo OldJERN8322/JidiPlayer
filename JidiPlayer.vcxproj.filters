@@ -51,7 +51,7 @@
     <ClCompile Include="includes\tinyfiledialogs\tinyfiledialogs.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="rollbuffer.cpp">
+    <ClCompile Include="rollthread.cpp">
       <Filter>Source Files\src</Filter>
     </ClCompile>
     <ClCompile Include="notecounter.cpp">

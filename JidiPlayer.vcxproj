@@ -30,7 +30,7 @@
     <ClCompile Include="midifile\src\MidiMessage.cpp" />
     <ClCompile Include="midifile\src\Options.cpp" />
     <ClCompile Include="notecounter.cpp" />
-    <ClCompile Include="rollbuffer.cpp" />
+    <ClCompile Include="rollthread.cpp" />
     <ClCompile Include="rolling.cpp" />
     <ClCompile Include="rollqueue.cpp" />
   </ItemGroup>

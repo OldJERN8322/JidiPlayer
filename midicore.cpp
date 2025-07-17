@@ -112,7 +112,7 @@ void playMidiAsync(const std::string& filename) {
 
     currentTempoBPM.store(tempoMap.begin()->second);
     playing = true;
-    midiPaused = true;
+    midiPaused = false;
     finish = false;
 
     std::deque<TimedEvent> events;
@@ -141,7 +141,7 @@ void playMidiAsync(const std::string& filename) {
         midiPlayheadSeconds = elapsed;
 
         int dispatched = 0;
-        const int kMaxEventsPerFrame = 16384;
+        const int kMaxEventsPerFrame = 8192;
         while (!events.empty()) {
             TimedEvent evt = events.front();
             smf::MidiEvent* mev = evt.ev;

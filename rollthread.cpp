@@ -1,10 +1,8 @@
-#include "rollthread.h"
 #include "rollqueue.h"
-#include <queue>
-#include <mutex>
+#include "rolling.h"
+#include <chrono>
 #include <thread>
 #include <atomic>
-#include <chrono>
 
 extern std::atomic<double> midiPlayheadSeconds;
 extern std::atomic<bool> playing;
@@ -18,13 +16,14 @@ struct PrebufferedNote {
 };
 
 std::mutex prebufferMutex;
-std::queue<PrebufferedNote> notePrebuffer;
+std::deque<PrebufferedNote> notePrebuffer;
 std::atomic<bool> bufferThreadRunning{ false };
+
+const double earlyWindow = 0.6; // seconds ahead of time to spawn early notes
 
 void QueuePrebufferedNote(double time, int pitch, int track) {
     std::lock_guard<std::mutex> lock(prebufferMutex);
-    if (notePrebuffer.size() < 32768)
-        notePrebuffer.push({ time, pitch, track });
+    notePrebuffer.push_back({ time, pitch, track });
 }
 
 void StartRollThread() {
@@ -38,15 +37,15 @@ void StartRollThread() {
             }
 
             double currentTime = midiPlayheadSeconds.load();
-            double earlyWindow = 0.3;
+            earlyWindow;
 
             {
                 std::lock_guard<std::mutex> lock(prebufferMutex);
                 while (!notePrebuffer.empty()) {
                     const auto& n = notePrebuffer.front();
                     if (n.time <= currentTime + earlyWindow) {
-                        QueueRollNote(n.pitch, n.track);
-                        notePrebuffer.pop();
+                        AddRollNote(n.pitch, n.track, n.time - currentTime);
+                        notePrebuffer.pop_front();
                     }
                     else {
                         break;
@@ -54,11 +53,26 @@ void StartRollThread() {
                 }
             }
 
-            std::this_thread::sleep_for(std::chrono::milliseconds(2));
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
         }).detach();
 }
 
 void StopRollThread() {
     bufferThreadRunning = false;
+}
+
+void ProcessRollQueue(double currentTime) {
+    std::lock_guard<std::mutex> lock(prebufferMutex);
+    while (!notePrebuffer.empty()) {
+        const auto& n = notePrebuffer.front();
+        if (n.time <= currentTime + earlyWindow) {
+            float timeUntilPlay = static_cast<float>(n.time - currentTime);
+            AddRollNote(n.pitch, n.track, timeUntilPlay); // Negative means early
+            notePrebuffer.pop_front();
+        }
+        else {
+            break;
+        }
+    }
 }
