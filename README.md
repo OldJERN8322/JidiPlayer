@@ -1,5 +1,9 @@
 # JidiPlayer
 
+This new JidiPlayer is moved trying Xmake.
+https://github.com/OldJERN8322/JidiPlayer-XMake
+
+
 Welcome. This called "JidiPlayer". i recreate project for because raylib before omnimidi issues and then build error.
 Also. there used Raylib MSVC16 and it work!
 
